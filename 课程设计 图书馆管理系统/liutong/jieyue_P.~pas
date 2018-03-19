@@ -1,0 +1,363 @@
+unit jieyue_P;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, 
+Forms,
+  Dialogs, StdCtrls, Buttons, ExtCtrls, jpeg, dbcgrids, Grids, DBGrids,
+  Mask, DBCtrls, DB, ADODB,dateutils;
+
+type
+  Tjieyue = class(TForm)
+    GroupBox1: TGroupBox;
+    GroupBox2: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    Panel1: TPanel;
+    BitBtn1: TBitBtn;
+    BitBtn2: TBitBtn;
+    Label7: TLabel;
+    Edit1: TEdit;
+    Label8: TLabel;
+    Edit7: TEdit;
+    Label9: TLabel;
+    Label10: TLabel;
+    DBGrid2: TDBGrid;
+    DBEdit1: TDBEdit;
+    DBEdit2: TDBEdit;
+    DBEdit3: TDBEdit;
+    DBEdit4: TDBEdit;
+    DBEdit5: TDBEdit;
+    ADOConnection1: TADOConnection;
+    ADOQuery1: TADOQuery;
+    DataSource1: TDataSource;
+    BitBtn3: TBitBtn;
+    BitBtn4: TBitBtn;
+    DBGrid1: TDBGrid;
+    ADOConnection2: TADOConnection;
+    ADOQuery2: TADOQuery;
+    DataSource2: TDataSource;
+    Label11: TLabel;
+    Label12: TLabel;
+    ADOQuery3: TADOQuery;
+    BitBtn5: TBitBtn;
+    ADOQuery4: TADOQuery;
+    ADOQuery5: TADOQuery;
+    DataSource3: TDataSource;
+    ADOQuery6: TADOQuery;
+    Timer1: TTimer;
+    procedure FormCreate(Sender: TObject);
+    procedure BitBtn2Click(Sender: TObject);
+    procedure BitBtn4Click(Sender: TObject);
+    procedure BitBtn3Click(Sender: TObject);
+    procedure BitBtn5Click(Sender: TObject);
+    procedure BitBtn1Click(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  jieyue: Tjieyue;
+   tt:integer;
+   max:integer;
+   state:string;
+   dead:Tdatetime;
+implementation
+uses unit1,main;
+{$R *.dfm}
+procedure Tjieyue.FormCreate(Sender: TObject);
+begin
+  Label10.Caption:='0';
+  edit1.Text:='';
+  edit7.Text:='';
+  ADOQuery1.Close;
+  ADOQuery1.SQL.Clear;
+  ADOQuery1.SQL.Add('delete from dbo.book_id');
+  ADOQuery1.ExecSQL;
+  ADOQuery2.Close;
+  ADOQuery3.Close;
+  ADOQuery4.Close;
+  ADOQuery5.Close;
+  ADOQuery6.Close;
+end;
+procedure Tjieyue.BitBtn2Click(Sender: TObject);
+begin
+  ADOQuery5.Close;
+  ADOQuery5.SQL.Clear;
+  ADOQuery5.SQL.Add('delete from dbo.book_id');
+  ADOQuery5.ExecSQL;
+  close;
+  unit1.Menu.show;
+end;
+
+procedure Tjieyue.BitBtn4Click(Sender: TObject);
+begin
+ if (edit1.Text='') then
+     begin
+     application.MessageBox('请输入读者编号!','提示',0+64);
+    end
+  else
+     begin
+     ADOQuery1.Close;
+     ADOQuery1.SQL.Clear;
+     ADOQuery1.SQL.Add('select * from dbo.book,dbo.lend,dbo.reader,dbo.reader_type where (dbo.reader.r_id=:a)and(dbo.lend.r_id=dbo.reader.r_id) and (dbo.book.b_id=dbo.lend.b_id) and(dbo.reader.rt_no=dbo.reader_type.rt_no) and (dbo.lend.l_no not in (select l_no from dbo.r_book))');     ADOQuery1.parameters.ParamByName('a').Value:=Trim(edit1.Text);
+     ADOQuery1.Open;
+     if adoquery1.recordcount=0 then
+     application.MessageBox('未找到该读者借阅信息!','提示',0+64);
+     ADOQuery6.Close;
+     ADOQuery6.SQL.Clear;
+     ADOQuery6.SQL.Add('select * from dbo.reader,dbo.reader_type where (dbo.reader.r_id=:a) and (dbo.reader.rt_no=dbo.reader_type.rt_no)');     ADOQuery6.parameters.ParamByName('a').Value:=Trim(edit1.Text);
+     ADOQuery6.Open;
+     if ADOQuery6.Recordcount=0 then
+     begin
+       application.MessageBox('未找到该读者!','提示',0+64);
+       end
+       else
+       begin
+       state:=adoquery6.fieldByName('r_state').asstring;
+       dead:=adoquery6.fieldByName('deadline').AsDateTime;
+       end;
+    end;
+ end;
+
+procedure Tjieyue.BitBtn3Click(Sender: TObject);
+begin
+ if (edit7.Text='') then
+     begin
+     application.MessageBox('请输入图书编号!','提示',0+64);
+    end
+  else
+     begin
+     ADOQuery5.Close;
+      ADOQuery5.SQL.Clear;
+      ADOQuery5.SQL.Add('select * from dbo.book where b_id=:a');
+      ADOQuery5.Parameters.ParamByName('a').Value:=''+edit7.Text+'';
+      ADOQuery5.Open;
+      if adoquery5.recordcount=0 then
+       application.MessageBox('未找到该图书!','提示',0+64);
+      ADOQuery3.Close;
+      ADOQuery3.SQL.Clear;
+      ADOQuery3.SQL.Add('select * from dbo.book_id where b_id=:a');
+      ADOQuery3.Parameters.ParamByName('a').Value:=''+edit7.Text+'';
+      ADOQuery3.Open;
+      if ADOQuery3.eof=false then
+        begin
+          application.MessageBox('该书已存在!','提示',0+64);
+          edit7.Clear;
+          ADOQuery2.Close;
+          ADOQuery2.SQL.Clear;
+          ADOQuery2.SQL.Add('select * from dbo.book_id,dbo.book where (dbo.book.b_id=dbo.book_id.b_id)');          ADOQuery2.Open;
+        end
+      else
+        begin
+          ADOQuery3.Close;
+          ADOQuery3.SQL.Clear;
+          Adoquery3.sql.add('insert into dbo.book_id(b_id)'+'values (:1)');
+          Adoquery3.parameters.parambyname('1').value:=''+Edit7.Text+'';
+          ADOQuery3.ExecSQL;
+          ADOQuery2.Close;
+          ADOQuery2.SQL.Clear;
+          ADOQuery2.SQL.Add('select * from dbo.book_id,dbo.book where (dbo.book.b_id=dbo.book_id.b_id)');          ADOQuery2.Open;
+          tt:=adoquery2.recordcount;
+          label10.caption:=inttostr(tt);
+      end;
+end;
+end;
+
+procedure Tjieyue.BitBtn5Click(Sender: TObject);
+var
+  temp:string;
+begin
+if label10.Caption='0' then
+begin
+application.MessageBox('列表为空!','提示',0+64);
+end
+else
+begin
+  temp:=DBGrid1.Fields[0].DisplayText;
+  ADOQuery2.delete;
+  ADOQuery3.Close;
+  ADOQuery3.SQL.Clear;
+  ADOQuery3.SQL.Add('delete from dbo.book_id where b_id=:a');
+  ADOQuery3.Parameters.ParamByName('a').Value:=temp;
+  ADOQuery3.ExecSQL;
+  tt:=tt-1;
+  label10.caption:=inttostr(tt);
+  end;
+end;
+//借阅
+procedure Tjieyue.BitBtn1Click(Sender: TObject);
+var
+ temp1:string;
+ temp2:string;
+ temp3:string;
+ temp4:string;
+ temp5:string;
+ temp6:string;
+ nowtime:string;
+ deadtime:string;
+ time:string;
+ borvol:integer;
+ jycount:integer;
+ i:integer;
+ j:integer;
+ today:String;
+ jytianshu:integer;
+begin
+ if DBedit1.Text='' then
+    begin
+      application.MessageBox('请输入要借读者','提示',0+64);
+      exit;
+    end;
+    time:=datetimetostr(now);
+  nowtime:=formatDatetime('YYYYMMDD',now);
+  deadtime:=formatDatetime('YYYYMMDD',dead);
+  ADOQuery4.Close;
+  ADOQuery4.SQL.Clear;
+  ADOQuery4.SQL.Add('select * from dbo.book_id');
+  ADOQuery4.Open;
+  j:=ADOQuery4.RecordCount;                  //要借图书数量
+  if ADOQuery4.RecordCount=0 then
+    begin
+      application.MessageBox('没有需要添加的图书!','提示',0+64);
+    end
+  else
+    begin
+      ADOQuery3.Close;
+      ADOQuery3.SQL.Clear;
+      ADOQuery3.SQL.Add('select * from dbo.reader,dbo.lend where dbo.reader.r_id=:a and dbo.lend.r_id=dbo.reader.r_id and dbo.lend.r_time<'+''''+time+''''+' and dbo.lend.l_no not in (select l_no from dbo.r_book)');      ADOQuery3.Parameters.ParamByName('a').Value:=Trim(Edit1.Text);
+      ADOQuery3.Open;
+      if ADOQuery3.recordcount>0 then
+      begin
+      appliaction.Messagebox('该读者存在超期图书!','提示',0+64);
+      exit;
+      end;
+    //判断是否存在已借图书
+      ADOQuery4.Close;
+      ADOQuery4.SQL.Clear;
+      ADOQuery4.SQL.Add('select * from dbo.book_id,dbo.lend where r_id=:a and dbo.book_id.b_id=dbo.lend.b_id and dbo.lend.l_no not in (select l_no from dbo.r_book)');      ADOQuery4.Parameters.ParamByName('a').Value:=Trim(Edit1.Text);
+      ADOQuery4.Open;
+      ADOQuery5.Close;
+      ADOQuery5.SQL.Clear;
+      ADOQuery5.SQL.Add('select * from dbo.book_id,dbo.book where dbo.book.b_state=:a and dbo.book_id.b_id=dbo.book.b_id');      ADOQuery5.Parameters.ParamByName('a').Value:=Trim('不可借');
+      ADOQuery5.Open;
+       //查找该读者的最大借阅时间和数量
+        ADOQuery3.Close;
+        ADOQuery3.SQL.Clear;
+        ADOQuery3.SQL.Add('select * from dbo.reader_type,dbo.reader where r_id=:a and dbo.reader.rt_no=dbo.reader_type.rt_no');        ADOQuery3.Parameters.ParamByName('a').Value:=trim(Edit1.Text);
+        ADOQuery3.Open;
+        if adoquery3.recordcount>0 then
+          begin
+            jytianshu:=adoquery3.fieldByName('max_time').asinteger;
+            max:=adoquery3.fieldByName('max_vol').asinteger;
+          end;
+      if ADOQuery4.RecordCount>0 then
+        begin
+          application.MessageBox('存在已借图书,请删除!','提示',0+64);
+          exit;
+        end
+        else
+        begin
+          for  I:=1 to j do
+            begin
+              ADOQuery2.RecNo:=I;                 //当前行
+              temp1:=DBGrid1.Fields[5].DisplayText;   //现有数量
+              temp3:=DBGrid1.Fields[7].DisplayText;   //图书状态
+              temp4:=DBGrid1.Fields[1].DisplayText;   //图书编号
+         if (temp1='0') or (temp3='不可借') then
+        begin
+           application.MessageBox('存在不可借图书,请删除!','提示',0+64);
+           exit;
+           end;
+           end;
+         if (strtoint(dbedit4.text)+tt>max) then
+        begin
+           application.MessageBox('超过读者最大借书数量!','提示',0+64);
+           exit;
+           end
+           else if (state='挂失') then
+           begin
+           application.MessageBox('该读者已挂失!','提示',0+64);
+           exit;
+           end
+          else if strtoint(deadtime)<strtoint(nowtime) then
+    begin
+      application.MessageBox('该读者借书证已过期!','提示',0+64);
+      exit;
+    end
+      else
+      begin
+        today:=FormatDatetime('YYYYMMDD',now);
+        ADOQuery4.Close;
+        ADOQuery4.SQL.Clear;
+        ADOQuery4.SQL.Add('select * from dbo.lend where l_no like :a');
+        ADOQuery4.Parameters.ParamByName('a').Value:=trim(today+'%');
+        ADOQuery4.Open;
+        jycount:=adoquery4.recordcount;
+        temp2:=format('%.4d',[jycount]);          //转化成字符串编号
+         ADOQuery4.Close;
+          ADOQuery4.SQL.Clear;
+          ADOQuery4.SQL.Add('select max_time from dbo.reader_type,dbo.reader where r_id=:a and dbo.reader.rt_no=dbo.reader_type.rt_no');          ADOQuery4.Parameters.ParamByName('a').Value:=trim(Edit1.Text);          ADOQuery4.Open;
+          if adoquery4.recordcount>0 then
+            jytianshu:=adoquery4.fieldByName('max_time').asinteger;
+        //showmessage(inttostr(j));
+        //借书更新数据库
+        for  I:=1 to j do
+        begin
+        temp1:=DBGrid1.Fields[5].DisplayText;        //现有数量
+        temp5:=DBGrid1.Fields[6].DisplayText;        //借出次数
+         temp2:=format('%.4d',[jycount+I]);
+         ADOQuery2.RecNo:=I;
+         temp6:=DBGrid1.Fields[0].DisplayText;
+  //更新借阅表
+         ADOQuery4.Close;
+         ADOQuery4.SQL.Clear;
+         ADOQuery4.SQL.Add('insert into dbo.lend(l_no,r_id,l_time,r_time,xj,a_id,b_id)'+'values(:1,:2,:3,:4,:5,:6,:7)');         ADOQuery4.Parameters.ParamByName('1').Value:=Trim(FormatDatetime('YYYYMMDD',now)+temp2);         ADOQuery4.Parameters.ParamByName('2').Value:=Trim(Edit1.Text);
+         ADOQuery4.Parameters.ParamByName('3').Value:=Trim(FormatDatetime('YYYY-MM-DD HH:NN:SS',now));         ADOQuery4.Parameters.ParamByName('4').Value:=Trim(Datetimetostr(Incday(now,jytianshu)));         ADOQuery4.Parameters.ParamByName('5').Value:=0;
+         ADOQuery4.Parameters.ParamByName('6').Value:=trim(main.frmMain.edit1.Text);         ADOQuery4.Parameters.ParamByName('7').Value:=trim(temp6);
+         ADOQuery4.ExecSQL;
+         
+//更新book表
+          ADOQuery4.Close;
+          ADOQuery4.SQL.Clear;
+          ADOQuery4.SQL.Add('update dbo.book set lend_times=:1,remain_vol=:2 where b_id=:3');ADOQuery4.Parameters.ParamByName('1').Value:=strtoint(temp5)+1;ADOQuery4.Parameters.ParamByName('2').Value:=strtoint(temp1)-1;ADOQuery4.Parameters.ParamByName('3').Value:=trim(temp6);ADOQuery4.ExecSQL;//更新reader表
+          ADOQuery3.Close;
+          ADOQuery3.SQL.Clear;
+          ADOQuery3.SQL.Add('select * from dbo.reader where r_id=:3');          ADOQuery3.Parameters.ParamByName('3').Value:=trim(Edit1.Text);          ADOQuery3.Open;
+          borvol:=adoquery3.fieldByName('bor_vol').asinteger;
+          ADOQuery4.Close;
+          ADOQuery4.SQL.Clear;
+          ADOQuery4.SQL.Add('update dbo.reader set bor_vol=:1 where r_id=:3');          ADOQuery4.Parameters.ParamByName('1').Value:=borvol+1;        ADOQuery4.Parameters.ParamByName('3').Value:=trim(Edit1.Text);    ADOQuery4.ExecSQL;
+
+//删除DBGrid的记录
+         ADOQuery2.delete;
+         end;
+         ADOQuery1.Close;
+         ADOQuery1.SQL.Clear;
+         ADOQuery1.SQL.Add('select * from dbo.book,dbo.lend,dbo.reader,dbo.reader_type where (dbo.reader.r_id=:a) and(dbo.lend.r_id=dbo.reader.r_id) and (dbo.book.b_id=dbo.lend.b_id) and(dbo.reader.rt_no=dbo.reader_type.rt_no) and dbo.lend.l_no not in(select l_no from dbo.r_book)');         ADOQuery1.parameters.ParamByName('a').Value:=Trim(edit1.Text);
+         ADOQuery1.Open;
+         ADOQuery5.Close;
+         ADOQuery5.SQL.Clear;
+         ADOQuery5.SQL.Add('delete from dbo.book_id');
+         ADOQuery5.ExecSQL;
+         application.MessageBox('借阅成功!','提示',0+64);
+         label10.caption:='0';
+     end;
+     end;
+     end;
+end;
+
+procedure Tjieyue.Timer1Timer(Sender: TObject);
+begin
+   Label12.Caption:=DatetimeToStr(now);
+end;
+
+end.
